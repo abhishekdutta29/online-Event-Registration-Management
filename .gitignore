@@ -1,0 +1,5 @@
+node_modules/
+.env
+database/event_registration.db
+database/event_registration.db-journal
+*.log

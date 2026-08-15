@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - EventVibe</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Custom Style -->
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navigation bar (dynamically rendered by app.js) -->
+  <header></header>
+
+  <main class="container my-5">
+    <div class="row mb-4">
+      <div class="col-12">
+        <h1 class="text-light">Admin Panel</h1>
+        <p class="text-secondary">Manage events, view registrations, and inspect site-wide stats.</p>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="row g-4 mb-5">
+      <!-- Total Events -->
+      <div class="col-md-4">
+        <div class="glass-card stat-box">
+          <div class="stat-number" id="stat-total-events">0</div>
+          <div class="stat-label">Total Events</div>
+        </div>
+      </div>
+      <!-- Total Users -->
+      <div class="col-md-4">
+        <div class="glass-card stat-box">
+          <div class="stat-number" id="stat-total-users">0</div>
+          <div class="stat-label">Registered Users</div>
+        </div>
+      </div>
+      <!-- Total Registrations -->
+      <div class="col-md-4">
+        <div class="glass-card stat-box">
+          <div class="stat-number" id="stat-total-registrations">0</div>
+          <div class="stat-label">Total Registrations</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Core Content: Table + Form -->
+    <div class="row">
+      <!-- Left side: Events List (Col 8) -->
+      <div class="col-lg-8 mb-4">
+        <div class="glass-card p-4 h-100">
+          <h3 class="text-light mb-4">All Events</h3>
+          
+          <div class="table-responsive">
+            <table class="table table-glass align-middle">
+              <thead>
+                <tr>
+                  <th>Event</th>
+                  <th>Category</th>
+                  <th>Date & Time</th>
+                  <th>Spots Status</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="events-tbody">
+                <!-- Loading indicator -->
+                <tr id="events-table-loading">
+                  <td colspan="5" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-secondary mt-2 mb-0">Loading events...</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right side: Add / Edit Form (Col 4) -->
+      <div class="col-lg-4 mb-4">
+        <div class="glass-card p-4" id="form-card">
+          <h4 class="text-light mb-4" id="form-title">Create New Event</h4>
+          
+          <form id="event-form">
+            <!-- Event Title -->
+            <div class="mb-3">
+              <label for="event-title-input" class="form-label">Event Title</label>
+              <input type="text" class="form-control form-glass" id="event-title-input" required placeholder="e.g. AI Hackathon">
+            </div>
+
+            <!-- Category -->
+            <div class="mb-3">
+              <label for="event-category-input" class="form-label">Category</label>
+              <input type="text" class="form-control form-glass" id="event-category-input" required placeholder="e.g. Technology, Music, Sports">
+            </div>
+
+            <!-- Date -->
+            <div class="mb-3">
+              <label for="event-date-input" class="form-label">Date</label>
+              <input type="date" class="form-control form-glass" id="event-date-input" required>
+            </div>
+
+            <!-- Time -->
+            <div class="mb-3">
+              <label for="event-time-input" class="form-label">Time</label>
+              <input type="time" class="form-control form-glass" id="event-time-input" required>
+            </div>
+
+            <!-- Location -->
+            <div class="mb-3">
+              <label for="event-location-input" class="form-label">Location</label>
+              <input type="text" class="form-control form-glass" id="event-location-input" required placeholder="e.g. Room 404, Online">
+            </div>
+
+            <!-- Capacity -->
+            <div class="mb-4">
+              <label for="event-capacity-input" class="form-label">Capacity (Max Seats)</label>
+              <input type="number" class="form-control form-glass" id="event-capacity-input" required min="1" placeholder="e.g. 50">
+            </div>
+
+            <!-- Image URL -->
+            <div class="mb-3">
+              <label for="event-image-input" class="form-label">Image URL (Optional)</label>
+              <input type="text" class="form-control form-glass" id="event-image-input" placeholder="e.g. /images/tech_conf.png">
+            </div>
+
+            <!-- Description -->
+            <div class="mb-4">
+              <label for="event-desc-input" class="form-label">Description (Optional)</label>
+              <textarea class="form-control form-glass" id="event-desc-input" rows="3" placeholder="Provide details about this event..."></textarea>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary-glow w-100" id="form-submit-btn">Add Event</button>
+              <button type="button" class="btn btn-outline-glass w-50 d-none" id="form-cancel-btn">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Registrants List Modal -->
+  <div class="modal fade" id="registrantsModal" tabindex="-1" aria-labelledby="registrantsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content modal-content-glass">
+        <div class="modal-header border-0">
+          <h5 class="modal-title text-light" id="registrantsModalLabel">Event Registrants</h5>
+          <button type="button" class="close-btn-glass" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body py-3">
+          <div class="mb-3 text-secondary">
+            Showing registered users for: <strong class="text-light" id="modal-registrants-event-title">-</strong>
+          </div>
+          
+          <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+            <table class="table table-glass align-middle">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Registration Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="registrants-tbody">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-outline-glass btn-sm" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content modal-content-glass">
+        <div class="modal-header border-0">
+          <h5 class="modal-title text-light" id="deleteModalLabel">Delete Event</h5>
+          <button type="button" class="close-btn-glass" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body py-3">
+          Are you sure you want to delete <strong class="text-light" id="modal-delete-event-title">-</strong>?
+          <p class="text-danger small mt-2 mb-0"><i class="bi bi-exclamation-triangle-fill me-1"></i>This will delete all registrations for this event. This action is irreversible.</p>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-outline-glass btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary-glow btn-sm" id="confirm-delete-btn">Delete Event</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-center py-4 border-top border-secondary mt-5" style="border-color: rgba(255,255,255,0.05) !important;">
+    <p class="text-secondary mb-0">&copy; 2026 EventVibe. All rights reserved.</p>
+  </footer>
+
+  <!-- Bootstrap 5 Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- App utilities -->
+  <script src="/js/app.js"></script>
+
+  <script>
+    let editMode = false;
+    let editEventId = null;
+    let deleteEventId = null;
+    let deleteModalInstance = null;
+    let registrantsModalInstance = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Security check
+      const user = getUser();
+      if (!user || user.role !== 'admin') {
+        window.location.href = '/index.html';
+        return;
+      }
+
+      deleteModalInstance = new bootstrap.Modal(document.getElementById('deleteModal'));
+      registrantsModalInstance = new bootstrap.Modal(document.getElementById('registrantsModal'));
+
+      loadStats();
+      loadEventsTable();
+
+      // Bind form submit
+      document.getElementById('event-form').addEventListener('submit', handleFormSubmit);
+
+      // Bind cancel click
+      document.getElementById('form-cancel-btn').addEventListener('click', resetForm);
+
+      // Bind confirm delete click
+      document.getElementById('confirm-delete-btn').addEventListener('click', handleDeleteEvent);
+    });
+
+    async function loadStats() {
+      try {
+        const stats = await fetchAPI('/api/admin/stats');
+        document.getElementById('stat-total-events').textContent = stats.totalEvents;
+        document.getElementById('stat-total-users').textContent = stats.totalUsers;
+        document.getElementById('stat-total-registrations').textContent = stats.totalRegistrations;
+      } catch (err) {
+        console.error('Failed to load stats:', err);
+      }
+    }
+
+    async function loadEventsTable() {
+      const tbody = document.getElementById('events-tbody');
+      const loader = document.getElementById('events-table-loading');
+
+      try {
+        const events = await fetchAPI('/api/events');
+        
+        if (loader) loader.remove();
+        tbody.innerHTML = '';
+
+        if (events.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5" class="text-center text-secondary py-5">
+                <i class="bi bi-calendar-minus fs-1 d-block mb-3"></i>
+                <h5>No events registered</h5>
+                <p class="mb-0">Fill out the form on the right to create an event.</p>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        events.forEach(event => {
+          const tr = document.createElement('tr');
+          
+          const dateObj = new Date(event.date);
+          const formattedDate = dateObj.toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric'
+          });
+          const formattedTime = event.time.substring(0, 5);
+          
+          const spotsText = `${event.spots_left} / ${event.capacity}`;
+          const isSoldOut = event.spots_left === 0;
+
+          // Actions dropdown / button group
+          const actions = `
+            <div class="d-flex justify-content-end gap-1">
+              <button class="btn btn-outline-glass btn-sm px-2" title="View Registrants" onclick="viewRegistrants(${event.id}, '${event.title.replace(/'/g, "\\'")}')"><i class="bi bi-people-fill"></i></button>
+              <button class="btn btn-outline-glass btn-sm px-2" title="Edit Event" onclick="triggerEdit(${JSON.stringify(event).replace(/"/g, '&quot;')})"><i class="bi bi-pencil-square text-indigo"></i></button>
+              <button class="btn btn-outline-glass btn-sm px-2" title="Delete Event" onclick="triggerDelete(${event.id}, '${event.title.replace(/'/g, "\\'")}')"><i class="bi bi-trash text-danger"></i></button>
+            </div>
+          `;
+
+          tr.innerHTML = `
+            <td>
+              <strong class="text-light d-block">${event.title}</strong>
+              <small class="text-secondary"><i class="bi bi-geo-alt me-1"></i>${event.location}</small>
+            </td>
+            <td><span class="event-tag ${getCategoryTagClass(event.category)}">${event.category}</span></td>
+            <td>
+              <div class="small text-light">${formattedDate}</div>
+              <div class="small text-secondary">${formattedTime}</div>
+            </td>
+            <td>
+              <span class="small ${isSoldOut ? 'text-danger fw-bold' : 'text-success'}">${spotsText} left</span>
+            </td>
+            <td>${actions}</td>
+          `;
+
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        if (loader) loader.remove();
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center text-danger py-5">
+              <i class="bi bi-exclamation-triangle fs-1 d-block mb-3"></i>
+              <h5>Failed to load events</h5>
+              <p class="mb-0">${err.message}</p>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+
+      const title = document.getElementById('event-title-input').value.trim();
+      const category = document.getElementById('event-category-input').value.trim();
+      const date = document.getElementById('event-date-input').value;
+      const time = document.getElementById('event-time-input').value;
+      const location = document.getElementById('event-location-input').value.trim();
+      const capacity = document.getElementById('event-capacity-input').value;
+      const description = document.getElementById('event-desc-input').value.trim();
+      const image_url = document.getElementById('event-image-input').value.trim();
+
+      const payload = { title, category, date, time, location, capacity, description, image_url };
+
+      const submitBtn = document.getElementById('form-submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = editMode ? 'Saving...' : 'Creating...';
+
+      try {
+        if (editMode) {
+          await fetchAPI(`/api/admin/events/${editEventId}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          });
+          showAlert('Event updated successfully.', 'success');
+        } else {
+          await fetchAPI('/api/admin/events', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          showAlert('Event created successfully.', 'success');
+        }
+
+        resetForm();
+        await loadStats();
+        await loadEventsTable();
+      } catch (err) {
+        showAlert(err.message || 'Action failed.', 'danger');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = editMode ? 'Save Changes' : 'Add Event';
+      }
+    }
+
+    function triggerEdit(event) {
+      editMode = true;
+      editEventId = event.id;
+
+      // Update form UI
+      document.getElementById('form-title').textContent = 'Edit Event';
+      document.getElementById('form-submit-btn').textContent = 'Save Changes';
+      document.getElementById('form-cancel-btn').classList.remove('d-none');
+
+      // Pre-fill values
+      document.getElementById('event-title-input').value = event.title;
+      document.getElementById('event-category-input').value = event.category;
+      document.getElementById('event-date-input').value = event.date;
+      
+      // Ensure time format is hh:mm (in case it contains seconds from db)
+      document.getElementById('event-time-input').value = event.time.substring(0, 5);
+      document.getElementById('event-location-input').value = event.location;
+      document.getElementById('event-capacity-input').value = event.capacity;
+      document.getElementById('event-image-input').value = event.image_url || '';
+      document.getElementById('event-desc-input').value = event.description || '';
+
+      // Scroll form card into view
+      document.getElementById('form-card').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function resetForm() {
+      editMode = false;
+      editEventId = null;
+
+      document.getElementById('form-title').textContent = 'Create New Event';
+      document.getElementById('form-submit-btn').textContent = 'Add Event';
+      document.getElementById('form-cancel-btn').classList.add('d-none');
+
+      document.getElementById('event-form').reset();
+    }
+
+    function triggerDelete(eventId, eventTitle) {
+      deleteEventId = eventId;
+      document.getElementById('modal-delete-event-title').textContent = eventTitle;
+      deleteModalInstance.show();
+    }
+
+    async function handleDeleteEvent() {
+      if (!deleteEventId) return;
+
+      const confirmBtn = document.getElementById('confirm-delete-btn');
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Deleting...';
+
+      try {
+        await fetchAPI(`/api/admin/events/${deleteEventId}`, {
+          method: 'DELETE'
+        });
+
+        showAlert('Event deleted successfully.', 'success');
+        deleteModalInstance.hide();
+
+        await loadStats();
+        await loadEventsTable();
+      } catch (err) {
+        showAlert(err.message || 'Failed to delete event.', 'danger');
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Delete Event';
+      }
+    }
+
+    async function viewRegistrants(eventId, eventTitle) {
+      document.getElementById('modal-registrants-event-title').textContent = eventTitle;
+      const tbody = document.getElementById('registrants-tbody');
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="4" class="text-center py-4">
+            <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+            <span class="text-secondary ms-2">Loading registrants...</span>
+          </td>
+        </tr>
+      `;
+      registrantsModalInstance.show();
+
+      try {
+        const registrants = await fetchAPI(`/api/admin/events/${eventId}/registrants`);
+        tbody.innerHTML = '';
+
+        if (registrants.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="4" class="text-center text-secondary py-4">
+                No registrations found for this event yet.
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        registrants.forEach(reg => {
+          const tr = document.createElement('tr');
+          
+          const isConfirmed = reg.status === 'confirmed';
+          const statusBadge = isConfirmed
+            ? `<span class="badge bg-success-subtle text-success border border-success-subtle">Confirmed</span>`
+            : `<span class="badge bg-danger-subtle text-danger border border-danger-subtle">Cancelled</span>`;
+
+          const dateObj = new Date(reg.registered_at);
+          const formattedDate = dateObj.toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric'
+          }) + ' ' + dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+          tr.innerHTML = `
+            <td><strong class="text-light">${reg.username}</strong></td>
+            <td><span class="small text-secondary">${reg.email}</span></td>
+            <td><span class="small text-secondary">${formattedDate}</span></td>
+            <td>${statusBadge}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="text-center text-danger py-4">
+              Failed to load registrants list.
+            </td>
+          </tr>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>

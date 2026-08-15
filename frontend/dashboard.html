@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Dashboard - EventVibe</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Custom Style -->
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navigation bar (dynamically rendered by app.js) -->
+  <header></header>
+
+  <main class="container my-5">
+    <div class="row mb-4">
+      <div class="col-12">
+        <h1 class="text-light">My Dashboard</h1>
+        <p class="text-secondary">View and manage your registered events.</p>
+      </div>
+    </div>
+
+    <!-- User Info Card -->
+    <div class="row mb-5">
+      <div class="col-12">
+        <div class="glass-card p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+          <div>
+            <h4 class="text-light mb-1" id="user-display-name">Username</h4>
+            <span class="text-secondary" id="user-display-email">email@example.com</span>
+          </div>
+          <div class="d-flex gap-2">
+            <div class="p-3 text-center rounded" style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border);">
+              <div class="small text-secondary">Total Registrations</div>
+              <strong class="text-light fs-4" id="stat-reg-count">0</strong>
+            </div>
+            <div class="p-3 text-center rounded" style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border);">
+              <div class="small text-secondary">Active Bookings</div>
+              <strong class="text-light fs-4 text-success" id="stat-active-count">0</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Registrations History Table -->
+    <div class="row">
+      <div class="col-12">
+        <div class="glass-card p-4">
+          <h3 class="text-light mb-4">Registration History</h3>
+          
+          <div class="table-responsive">
+            <table class="table table-glass align-middle">
+              <thead>
+                <tr>
+                  <th>Event</th>
+                  <th>Category</th>
+                  <th>Date & Time</th>
+                  <th>Location</th>
+                  <th>Status</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="registrations-tbody">
+                <!-- Loading row -->
+                <tr id="table-loading">
+                  <td colspan="6" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-secondary mt-2 mb-0">Loading your registration history...</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Cancel Confirmation Modal -->
+  <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content modal-content-glass">
+        <div class="modal-header border-0">
+          <h5 class="modal-title text-light" id="cancelModalLabel">Cancel Registration</h5>
+          <button type="button" class="close-btn-glass" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body py-3">
+          Are you sure you want to cancel your registration for <strong class="text-light" id="modal-event-title">-</strong>?
+          <p class="text-danger small mt-2 mb-0"><i class="bi bi-exclamation-triangle-fill me-1"></i>This action cannot be undone, and your spot will be released.</p>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-outline-glass btn-sm" data-bs-dismiss="modal">Keep Booking</button>
+          <button type="button" class="btn btn-secondary-glow btn-sm" id="confirm-cancel-btn">Cancel Registration</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-center py-4 border-top border-secondary mt-5" style="border-color: rgba(255,255,255,0.05) !important;">
+    <p class="text-secondary mb-0">&copy; 2026 EventVibe. All rights reserved.</p>
+  </footer>
+
+  <!-- Bootstrap 5 Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- App utilities -->
+  <script src="/js/app.js"></script>
+
+  <script>
+    let cancelRegId = null;
+    let cancelModalInstance = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Redirect if not logged in
+      const user = getUser();
+      if (!user) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      // Populate user info
+      document.getElementById('user-display-name').textContent = user.username;
+      document.getElementById('user-display-email').textContent = user.email;
+
+      cancelModalInstance = new bootstrap.Modal(document.getElementById('cancelModal'));
+
+      loadRegistrationHistory();
+
+      // Bind confirm cancel click
+      document.getElementById('confirm-cancel-btn').addEventListener('click', handleCancelRegistration);
+    });
+
+    async function loadRegistrationHistory() {
+      const tbody = document.getElementById('registrations-tbody');
+      const loadingRow = document.getElementById('table-loading');
+
+      try {
+        const registrations = await fetchAPI('/api/registrations/my');
+        
+        // Remove loading row
+        if (loadingRow) loadingRow.remove();
+        tbody.innerHTML = '';
+
+        if (registrations.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6" class="text-center text-secondary py-5">
+                <i class="bi bi-ticket-x fs-1 d-block mb-3"></i>
+                <h5>No registrations found</h5>
+                <p class="mb-0">You have not registered for any events yet. <a href="/index.html" class="text-light">Browse events now</a>.</p>
+              </td>
+            </tr>
+          `;
+          document.getElementById('stat-reg-count').textContent = '0';
+          document.getElementById('stat-active-count').textContent = '0';
+          return;
+        }
+
+        let totalReg = registrations.length;
+        let activeReg = 0;
+
+        registrations.forEach(reg => {
+          const tr = document.createElement('tr');
+          
+          const isConfirmed = reg.status === 'confirmed';
+          if (isConfirmed) activeReg++;
+
+          // Format status badge
+          const statusBadge = isConfirmed
+            ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">Confirmed</span>`
+            : `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">Cancelled</span>`;
+
+          // Format Date
+          const dateObj = new Date(reg.date);
+          const formattedDate = dateObj.toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric'
+          });
+          const formattedTime = reg.time.substring(0, 5);
+
+          // Action column
+          const actionBtn = isConfirmed
+            ? `<button class="btn btn-secondary-glow btn-sm py-1 px-3" onclick="triggerCancel(${reg.registration_id}, '${reg.title.replace(/'/g, "\\'")}')">Cancel</button>`
+            : `<button class="btn btn-outline-glass btn-sm py-1 px-3 disabled" disabled>Cancelled</button>`;
+
+          tr.innerHTML = `
+            <td>
+              <strong class="text-light d-block">${reg.title}</strong>
+              <a href="/event-details.html?id=${reg.event_id}" class="small text-secondary text-decoration-none">View Event Page</a>
+            </td>
+            <td><span class="event-tag ${getCategoryTagClass(reg.category)}">${reg.category}</span></td>
+            <td>
+              <div class="small text-light">${formattedDate}</div>
+              <div class="small text-secondary">${formattedTime}</div>
+            </td>
+            <td><span class="small text-secondary">${reg.location}</span></td>
+            <td>${statusBadge}</td>
+            <td class="text-end">${actionBtn}</td>
+          `;
+
+          tbody.appendChild(tr);
+        });
+
+        // Set stats
+        document.getElementById('stat-reg-count').textContent = totalReg;
+        document.getElementById('stat-active-count').textContent = activeReg;
+
+      } catch (err) {
+        if (loadingRow) loadingRow.remove();
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center text-danger py-5">
+              <i class="bi bi-exclamation-triangle fs-1 d-block mb-3"></i>
+              <h5>Failed to load history</h5>
+              <p class="mb-0">${err.message || 'There was an error communicating with the server.'}</p>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    function triggerCancel(registrationId, eventTitle) {
+      cancelRegId = registrationId;
+      document.getElementById('modal-event-title').textContent = eventTitle;
+      cancelModalInstance.show();
+    }
+
+    async function handleCancelRegistration() {
+      if (!cancelRegId) return;
+
+      const confirmBtn = document.getElementById('confirm-cancel-btn');
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Cancelling...';
+
+      try {
+        await fetchAPI(`/api/registrations/${cancelRegId}/cancel`, {
+          method: 'PUT'
+        });
+
+        showAlert('Registration cancelled successfully.', 'success');
+        cancelModalInstance.hide();
+        
+        // Reload history
+        await loadRegistrationHistory();
+      } catch (err) {
+        showAlert(err.message || 'Failed to cancel registration.', 'danger');
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Cancel Registration';
+      }
+    }
+  </script>
+</body>
+</html>
