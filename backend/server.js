@@ -51,16 +51,28 @@ app.get('*', (req, res) => {
 async function startServer() {
   try {
     await db.connect();
-    app.listen(PORT, () => {
-      console.log(`=================================================`);
-      console.log(`  Event Registration system running on port ${PORT}`);
-      console.log(`  Local Address: http://localhost:${PORT}`);
-      console.log(`=================================================`);
-    });
+    // Only listen if not running as a Vercel Serverless Function
+    if (!process.env.VERCEL) {
+      app.listen(PORT, () => {
+        console.log(`=================================================`);
+        console.log(`  Event Registration system running on port ${PORT}`);
+        console.log(`  Local Address: http://localhost:${PORT}`);
+        console.log(`=================================================`);
+      });
+    }
   } catch (err) {
     console.error('Failed to start server due to database initialization failure:', err);
-    process.exit(1);
+    if (!process.env.VERCEL) {
+      process.exit(1);
+    }
   }
 }
 
-startServer();
+// Connect to database on load (Express handler is stateless on Vercel)
+if (process.env.VERCEL) {
+  db.connect().catch(err => console.error('Database connection failed in Vercel function:', err));
+} else {
+  startServer();
+}
+
+module.exports = app;
