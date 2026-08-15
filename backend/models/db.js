@@ -18,7 +18,7 @@ const sqliteDbPath = path.join(dbDir, 'event_registration.db');
 async function connect() {
   if (isMySQL) {
     try {
-      mysqlPool = mysql.createPool({
+      const poolOptions = {
         host: process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.DB_PORT, 10) || 3306,
         user: process.env.DB_USER || 'root',
@@ -27,7 +27,16 @@ async function connect() {
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0
-      });
+      };
+
+      // Enable SSL automatically for cloud-hosted databases
+      if (process.env.DB_HOST && process.env.DB_HOST !== 'localhost') {
+        poolOptions.ssl = {
+          rejectUnauthorized: false
+        };
+      }
+
+      mysqlPool = mysql.createPool(poolOptions);
       // Test connection
       await mysqlPool.query('SELECT 1');
       console.log('Successfully connected to MySQL database.');
