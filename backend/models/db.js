@@ -41,7 +41,12 @@ async function connect() {
       await mysqlPool.query('SELECT 1');
       console.log('Successfully connected to MySQL database.');
     } catch (err) {
-      console.warn('MySQL connection failed. Falling back to local SQLite database...', err.message);
+      console.error('MySQL connection failed:', err);
+      if (process.env.VERCEL) {
+        // On Vercel, throw the real MySQL connection error so it appears directly in logs
+        throw err;
+      }
+      console.warn('Falling back to local SQLite database...', err.message);
       isMySQL = false;
       await connectSQLite();
     }
