@@ -220,6 +220,7 @@
     let deleteEventId = null;
     let deleteModalInstance = null;
     let registrantsModalInstance = null;
+    let allEvents = [];
 
     document.addEventListener('DOMContentLoaded', () => {
       // Security check
@@ -262,6 +263,7 @@
 
       try {
         const events = await fetchAPI('/api/events');
+        allEvents = events;
         
         if (loader) loader.remove();
         tbody.innerHTML = '';
@@ -295,7 +297,7 @@
           const actions = `
             <div class="d-flex justify-content-end gap-1">
               <button class="btn btn-outline-glass btn-sm px-2" title="View Registrants" onclick="viewRegistrants(${event.id}, '${event.title.replace(/'/g, "\\'")}')"><i class="bi bi-people-fill"></i></button>
-              <button class="btn btn-outline-glass btn-sm px-2" title="Edit Event" onclick="triggerEdit(${JSON.stringify(event).replace(/"/g, '&quot;')})"><i class="bi bi-pencil-square text-indigo"></i></button>
+              <button class="btn btn-outline-glass btn-sm px-2" title="Edit Event" onclick="triggerEdit(${event.id})"><i class="bi bi-pencil-square text-indigo"></i></button>
               <button class="btn btn-outline-glass btn-sm px-2" title="Delete Event" onclick="triggerDelete(${event.id}, '${event.title.replace(/'/g, "\\'")}')"><i class="bi bi-trash text-danger"></i></button>
             </div>
           `;
@@ -376,7 +378,9 @@
       }
     }
 
-    function triggerEdit(event) {
+    function triggerEdit(eventId) {
+      const event = allEvents.find(e => e.id == eventId);
+      if (!event) return;
       editMode = true;
       editEventId = event.id;
 
